@@ -41,6 +41,9 @@ namespace sis::v9 {
 
         static sis::v9::InstallBlock read_install_block(BinaryReader &reader);
 
+        static sis::v9::FileDescription read_file_description(BinaryReader &reader);
+
+
         static sis::v9::SignatureCertificateChain read_signature_certificate_chain(
             BinaryReader &reader
         );
@@ -56,7 +59,24 @@ namespace sis::v9 {
 
         static sis::v9::String read_string(BinaryReader &reader);
 
-        static sis::v9::String read_string_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
+        static sis::v9::String
+        read_string_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
+
+        static sis::v9::FileDescription
+        read_file_description_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
+
+        static sis::v9::Controller
+        read_controller_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
+
+        static sis::v9::If
+        read_if_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
+
+        static sis::v9::ElseIf
+        read_elseif_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
+
+        static std::optional<sis::v9::Capabilities> read_opt_capabilities(BinaryReader &reader);
+        static sis::v9::Expression read_expression(BinaryReader &reader);
+        static sis::v9::Hash read_hash(BinaryReader &reader);
 
         static sis::v9::Version read_version(BinaryReader &reader);
 
@@ -68,6 +88,18 @@ namespace sis::v9 {
 
         static std::vector<sis::v9::String>
         read_array_of_string(BinaryReader &reader);
+
+        static std::vector<sis::v9::FileDescription>
+        read_array_of_file_description(BinaryReader &reader);
+
+        static std::vector<sis::v9::Controller>
+        read_array_of_controller(BinaryReader &reader);
+
+        static std::vector<sis::v9::If>
+        read_array_of_if(BinaryReader &reader);
+
+        static std::vector<sis::v9::ElseIf>
+        read_array_of_elseif(BinaryReader &reader);
 
         /*static std::vector<SISX::SignatureCertificateChain>
         read_array_of_signature_certificate_chain(BinaryReader &reader);*/
