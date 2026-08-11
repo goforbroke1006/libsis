@@ -126,7 +126,7 @@ namespace sis::v9 {
         String target;
         String mimeType;
 
-        Capabilities capabilities;
+        std::optional<Capabilities> capabilities;
         Hash hash;
 
         uint32_t operation;
@@ -142,8 +142,66 @@ namespace sis::v9 {
         FileDescription fileDescription;
     };
 
+    enum class ExpressionOperator : uint32_t {
+        // Binary
+        Equal = 1,
+        NotEqual = 2,
+        GreaterThan = 3,
+        LessThan = 4,
+        GreaterOrEqual = 5,
+        LessOrEqual = 6,
+
+        // Logical
+        And = 7,
+        Or = 8,
+
+        // Unary
+        Not = 9,
+
+        // Functions
+        Exists = 10,
+        AppProperties = 11,
+        DevProperties = 12, // PACKAGE()
+
+        // Primitives
+        String = 13,
+        Option = 14,
+        Variable = 15,
+        Number = 16,
+    };
+
+    inline
+    std::string exp_op_to_str(const ExpressionOperator &op) {
+        switch (op) {
+            case ExpressionOperator::Equal: return "Equal";
+            case ExpressionOperator::NotEqual: return "NotEqual";
+            case ExpressionOperator::GreaterThan: return "GreaterThan";
+            case ExpressionOperator::LessThan: return "LessThan";
+            case ExpressionOperator::GreaterOrEqual: return "GreaterOrEqual";
+            case ExpressionOperator::LessOrEqual: return "LessOrEqual";
+
+            case ExpressionOperator::And: return "And";
+            case ExpressionOperator::Or: return "Or";
+
+            case ExpressionOperator::Not: return "Not";
+
+            case ExpressionOperator::Exists: return "Exists";
+            case ExpressionOperator::AppProperties: return "AppProperties";
+            case ExpressionOperator::DevProperties: return "DevProperties";
+
+            case ExpressionOperator::String: return "String";
+            case ExpressionOperator::Option: return "Option";
+            case ExpressionOperator::Variable: return "Variable";
+            case ExpressionOperator::Number: return "Number";
+
+            default:
+                return "<unknown>";
+        }
+    }
+
     struct Expression {
-        uint32_t operatorType;
+        uint32_t operatorTypeRaw;
+        ExpressionOperator operatorType;
 
         std::unique_ptr<Expression> left;
         std::unique_ptr<Expression> right;
@@ -154,20 +212,6 @@ namespace sis::v9 {
 
     struct Controller;
 
-    struct EmbeddedController {
-        std::unique_ptr<Controller> controller = nullptr;
-        uint32_t dataIndex = 0;
-
-
-
-        EmbeddedController() = default;
-
-        EmbeddedController(EmbeddedController&&) noexcept = default;
-        EmbeddedController& operator=(EmbeddedController&&) noexcept = default;
-
-        EmbeddedController(const EmbeddedController&) = delete;
-        EmbeddedController& operator=(const EmbeddedController&) = delete;
-    };
 
     struct ElseIf;
     struct InstallBlock;
@@ -189,20 +233,21 @@ namespace sis::v9 {
         std::vector<FileDescription> files;
 
         // SISArray<SISEmbeddedController>
-        std::vector<EmbeddedController> embeddedControllers;
+        std::vector<Controller> embeddedControllers;
 
         // SISArray<SISIf>
         std::vector<If> ifBlocks;
 
 
-
         InstallBlock() = default;
 
-        InstallBlock(InstallBlock&&) noexcept = default;
-        InstallBlock& operator=(InstallBlock&&) noexcept = default;
+        InstallBlock(InstallBlock &&) noexcept = default;
 
-        InstallBlock(const InstallBlock&) = delete;
-        InstallBlock& operator=(const InstallBlock&) = delete;
+        InstallBlock &operator=(InstallBlock &&) noexcept = default;
+
+        InstallBlock(const InstallBlock &) = delete;
+
+        InstallBlock &operator=(const InstallBlock &) = delete;
     };
 
     struct SignatureAlgorithm {
@@ -280,11 +325,13 @@ namespace sis::v9 {
 
         File() = default;
 
-        File(const File&) = delete;
-        File& operator=(const File&) = delete;
+        File(const File &) = delete;
 
-        File(File&&) noexcept = default;
-        File& operator=(File&&) noexcept = default;
+        File &operator=(const File &) = delete;
+
+        File(File &&) noexcept = default;
+
+        File &operator=(File &&) noexcept = default;
     };
 } //sis::v9
 
