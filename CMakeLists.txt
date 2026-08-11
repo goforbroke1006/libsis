@@ -15,3 +15,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC ./include)
 #
 find_package(ZLIB REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
+
+include(CTest)
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
