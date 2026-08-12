@@ -3,118 +3,9 @@
 //
 
 #include "sis/v9/Parser.h"
+#include "sis/v9/zlib_inflate.h"
 
 #include <iostream>
-#include <zlib.h>
-
-namespace {
-    std::vector<uint8_t> inflate_impl(const std::vector<uint8_t> &input, uint64_t uncompressedSize, int windowBits) {
-        if (uncompressedSize > SIZE_MAX)
-            throw std::runtime_error("Output too large");
-
-        if (input.size() > UINT_MAX)
-            throw std::runtime_error("Input too large");
-
-        if (uncompressedSize > UINT_MAX)
-            throw std::runtime_error(
-                "Output too large for this one-shot inflater"
-            );
-
-        std::vector<uint8_t> output(
-            static_cast<size_t>(uncompressedSize)
-        );
-
-        z_stream stream{};
-
-        stream.next_in =
-                const_cast<Bytef *>(
-                    reinterpret_cast<const Bytef *>(input.data())
-                );
-
-        stream.avail_in =
-                static_cast<uInt>(input.size());
-
-        stream.next_out =
-                reinterpret_cast<Bytef *>(output.data());
-
-        stream.avail_out =
-                static_cast<uInt>(output.size());
-
-        int rc = inflateInit2(&stream, windowBits);
-
-        if (rc != Z_OK)
-            throw std::runtime_error("inflateInit2 failed");
-
-        rc = ::inflate(&stream, Z_FINISH);
-
-        const auto totalIn = stream.total_in;
-        const auto totalOut = stream.total_out;
-
-        std::string msg =
-                stream.msg ? stream.msg : "";
-
-        inflateEnd(&stream);
-
-        if (rc != Z_STREAM_END) {
-            throw std::runtime_error(
-                "inflate failed: rc=" + std::to_string(rc) +
-                ", total_in=" + std::to_string(totalIn) +
-                ", total_out=" + std::to_string(totalOut) +
-                ", msg=" + msg
-            );
-        }
-
-        if (totalOut != uncompressedSize) {
-            throw std::runtime_error(
-                "SISX decompressed size mismatch: expected=" +
-                std::to_string(uncompressedSize) +
-                ", actual=" +
-                std::to_string(totalOut)
-            );
-        }
-
-        return output;
-    }
-
-    std::vector<uint8_t> zlib_inflate(const std::vector<uint8_t> &input, uint64_t uncompressedSize) {
-        try {
-            // Raw RFC 1951 DEFLATE
-            return inflate_impl(
-                input,
-                uncompressedSize,
-                -MAX_WBITS
-            );
-        } catch (const std::exception &rawError) {
-            std::cerr
-                    << "raw DEFLATE failed: "
-                    << rawError.what()
-                    << '\n';
-
-            // Diagnostic fallback: RFC 1950 zlib wrapper
-            return inflate_impl(
-                input,
-                uncompressedSize,
-                MAX_WBITS
-            );
-        }
-    }
-
-    sis::v9::FieldHeader read_field_header(BinaryReader &reader) {
-        const uint32_t raw_type = reader.read_u32_le();
-        const uint32_t len = reader.read_u32_le();
-
-        uint64_t length;
-        if (len & 0x80000000u) {
-            const uint32_t high = reader.read_u32_le();
-
-            length = (static_cast<uint64_t>(high) << 31) | (len & 0x7FFFFFFFu);
-        } else {
-            length = len;
-        }
-
-        return sis::v9::FieldHeader::from_raw(raw_type, length);
-    }
-};
 
 namespace {
     void assert_field_type(const sis::v9::Type gotType, const sis::v9::Type wantType) {
@@ -129,18 +20,18 @@ namespace {
     }
 }
 
-sis::v9::File sis::v9::Parser::parse() {
+sis::v9::File sis::v9::Parser::parse(BinaryReader &reader) {
     // 0x00  UID1 = 0x10201A7A
     // 0x04  UID2
     // 0x08  UID3
     // 0x0C  UID checksum
     sis::v9::Header header{};
-    header.uid1 = reader_.read_u32_le();
-    header.uid2 = reader_.read_u32_le();
-    header.uid3 = reader_.read_u32_le();
-    header.checksum = reader_.read_u32_le();
+    header.uid1 = FileUID32(reader.read_u32_le());
+    header.uid2 = FileUID32(reader.read_u32_le());
+    header.uid3 = FileUID32(reader.read_u32_le());
+    header.checksum = FileUID32(reader.read_u32_le());
 
-    if (reader_.position() != 16)
+    if (reader.position() != 16)
         throw std::runtime_error("SISXParser::parse(): expected 16 bytes offset");
 
     sis::v9::File result;
@@ -148,18 +39,18 @@ sis::v9::File sis::v9::Parser::parse() {
     result.header = header;
 
     // 0x10  SISContents
-    result.contents = read_contents();
+    result.contents = read_contents(reader);
 
     return result;
 }
 
-sis::v9::FieldHeader sis::v9::Parser::read_field_header() {
-    const uint32_t raw_type = reader_.read_u32_le();
-    const uint32_t len = reader_.read_u32_le();
+sis::v9::FieldHeader sis::v9::Parser::read_field_header(BinaryReader &reader) {
+    const uint32_t raw_type = reader.read_u32_le();
+    const uint32_t len = reader.read_u32_le();
 
     uint64_t length;
     if (len & 0x80000000u) {
-        const uint32_t high = reader_.read_u32_le();
+        const uint32_t high = reader.read_u32_le();
 
         length = (static_cast<uint64_t>(high) << 31) | (len & 0x7FFFFFFFu);
     } else {
@@ -169,85 +60,103 @@ sis::v9::FieldHeader sis::v9::Parser::read_field_header() {
     return sis::v9::FieldHeader::from_raw(raw_type, length);
 }
 
-sis::v9::Contents sis::v9::Parser::read_contents() {
+sis::v9::Contents sis::v9::Parser::read_contents(BinaryReader &reader) {
     sis::v9::Contents contents{};
 
-    const auto contentsHeader = read_field_header();
+    const auto contentsHeader = read_field_header(reader);
 
     if (contentsHeader.type != sis::v9::Type::Contents)
         throw std::runtime_error("Expected SISContents, got "
                                  + std::to_string(contentsHeader.type_num()) + " "
                                  + sis::v9::type_to_string(contentsHeader.type));
 
-    while (!reader_.empty()) {
-        const sis::v9::FieldHeader fieldHeader = read_field_header();
+    while (!reader.empty()) {
+        const sis::v9::FieldHeader fieldHeader = read_field_header(reader);
 
         switch (static_cast<sis::v9::Type>(fieldHeader.type)) {
             case sis::v9::Type::ControllerChecksum:
-                contents.controllerChecksum = reader_.read_u16_le();
+                contents.controllerChecksum = reader.read_u16_le();
+                skip_padding(reader, fieldHeader);
                 break;
             case sis::v9::Type::DataChecksum:
-                reader_.read_bytes(fieldHeader.length);
+                reader.read_bytes(fieldHeader.length);
                 // TODO:
                 std::cerr << "fake reading for [DataChecksum]: " << fieldHeader.length << " bytes" << std::endl;
+                skip_padding(reader, fieldHeader);
                 break;
 
             case sis::v9::Type::Compressed:
-                contents.compressed = {
-                    .algorithm = reader_.read_u32_le(),
-                    .uncompressedSize = reader_.read_u64_le(),
-                };
+                contents.compressed = read_compressed_payload(reader, fieldHeader);
 
                 {
-                    if (contents.compressed.algorithm == sis::v9::COMP_ALG_NONE) {
+                    if (contents.compressed.algorithm == sis::v9::CompressedAlgorithm::COMP_ALG_NONE) {
                         // parse controller children...
                         // TODO:
-                        // reader_.read_bytes(ctrlHeader.length);
-                    } else if (contents.compressed.algorithm == sis::v9::COMP_ALG_DEFLATE) {
+                        // reader.read_bytes(ctrlHeader.length);
+                    } else if (contents.compressed.algorithm == sis::v9::CompressedAlgorithm::COMP_ALG_DEFLATE) {
                         if (fieldHeader.length < 12)
                             throw std::runtime_error("Invalid SISCompressed length");
 
-                        auto compressedData = reader_.read_bytes(fieldHeader.length - 12);
+
                         auto inflate = zlib_inflate(
-                            compressedData,
+                            contents.compressed.compressedData,
                             contents.compressed.uncompressedSize
                         );
 
                         BinaryReader inflateReader(inflate);
-                        contents.compressed.controller = read_controller(inflateReader);
+                        contents.controller = read_controller(inflateReader);
                     }
                 }
 
                 break;
 
             case sis::v9::Type::Data:
-                reader_.read_bytes(fieldHeader.length);
-                contents.data = {}; // TODO:
-                std::cerr << "fake reading for [Data]: " << fieldHeader.length << " bits" << std::endl;
+                contents.data = read_data_payload(reader, fieldHeader);
+                skip_padding(reader, fieldHeader);
                 break;
 
             default:
                 // skip data block
-                reader_.read_bytes(fieldHeader.length);
+                reader.read_bytes(fieldHeader.length);
                 std::cerr << "skip reading for UNKNOWN:"
                         << " type: " << fieldHeader.type_num() << ", "
                         << " type: " << sis::v9::type_to_string(fieldHeader.type) << ", "
                         << " length: " << fieldHeader.length << " bits" << ", "
                         << std::endl;
+                skip_padding(reader, fieldHeader);
                 break;
         }
-
-        // SIS fields are aligned to 4-byte boundaries.
-        const uint64_t padding = (4 - (fieldHeader.length % 4)) % 4;
-        reader_.read_bytes(padding);
     }
 
     return contents;
 }
 
+sis::v9::Compressed sis::v9::Parser::read_compressed(BinaryReader &reader) {
+    const auto fh = read_field_header(reader);
+    assert_field_type(fh.type, sis::v9::Type::Compressed);
+
+    const auto payload = read_compressed_payload(reader, fh);
+
+    return payload;
+}
+
+sis::v9::Compressed sis::v9::Parser::read_compressed_payload(BinaryReader &reader, const FieldHeader &header) {
+    sis::v9::Compressed result;
+
+    result.algorithmRaw = reader.read_u32_le();
+    result.algorithm = static_cast<sis::v9::CompressedAlgorithm>(result.algorithmRaw);
+    result.uncompressedSize = reader.read_u64_le();
+
+    if (header.length < 12)
+        throw std::runtime_error("Invalid SISCompressed length");
+    result.compressedData = reader.read_bytes(header.length - 12);
+
+    return result;
+}
+
 sis::v9::Controller sis::v9::Parser::read_controller(BinaryReader &reader) {
-    const auto ctrlFH = ::read_field_header(reader);
-    assert_field_type(ctrlFH.type, sis::v9::Type::Controller);
+    const auto fh = read_field_header(reader);
+    assert_field_type(fh.type, sis::v9::Type::Controller);
 
     sis::v9::Controller result;
 
@@ -265,44 +174,56 @@ sis::v9::Controller sis::v9::Parser::read_controller(BinaryReader &reader) {
     result.certChain = read_signature_certificate_chain(reader);
     result.dataIndex = read_data_index(reader);
 
+    skip_padding(reader, fh);
+
+    return result;
+}
+
+sis::v9::Data sis::v9::Parser::read_data_payload(BinaryReader &reader, const FieldHeader &header) {
+    sis::v9::Data result;
+
+    result.units = read_array_of_data_unit(reader);
+
     return result;
 }
 
 sis::v9::Info sis::v9::Parser::read_info(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Info);
 
     BinaryReader inReader(reader.read_bytes(fh.length));
 
-    sis::v9::Info info;
+    sis::v9::Info result;
 
-    info.uid = read_uid(inReader);
-    info.vendorUniqueName = read_string(inReader);
-    info.names = read_array_of_string(inReader);
-    info.vendorNames = read_array_of_string(inReader);
-    info.version = read_version(inReader);
-    info.creationTime = read_datetime(inReader);
-    info.installType = inReader.read_u8();
-    info.installFlags = inReader.read_u8();
+    result.uid = read_uid(inReader);
+    result.vendorUniqueName = read_string(inReader);
+    result.names = read_array_of_string(inReader);
+    result.vendorNames = read_array_of_string(inReader);
+    result.version = read_version(inReader);
+    result.creationTime = read_datetime(inReader);
+    result.installType = inReader.read_u8();
+    result.installFlags = inReader.read_u8();
 
     skip_padding(reader, fh);
 
-    return info;
+    return result;
 }
 
 sis::v9::SupportedOptions sis::v9::Parser::read_supported_options(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::SupportedOptions);
 
     sis::v9::SupportedOptions supOpts;
 
     reader.read_bytes(fh.length); // TODO: write a real reading
 
+    skip_padding(reader, fh);
+
     return supOpts;
 }
 
 sis::v9::SupportedLanguages sis::v9::Parser::read_supported_languages(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::SupportedLanguages);
 
 
@@ -310,11 +231,13 @@ sis::v9::SupportedLanguages sis::v9::Parser::read_supported_languages(BinaryRead
 
     reader.read_bytes(fh.length); // TODO: write a real reading
 
+    skip_padding(reader, fh);
+
     return supLangs;
 }
 
 sis::v9::Prerequisites sis::v9::Parser::read_prerequisites(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Prerequisites);
 
 
@@ -322,11 +245,13 @@ sis::v9::Prerequisites sis::v9::Parser::read_prerequisites(BinaryReader &reader)
 
     reader.read_bytes(fh.length); // TODO: write a real reading
 
+    skip_padding(reader, fh);
+
     return pre;
 }
 
 sis::v9::Properties sis::v9::Parser::read_properties(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Properties);
 
 
@@ -334,12 +259,14 @@ sis::v9::Properties sis::v9::Parser::read_properties(BinaryReader &reader) {
 
     reader.read_bytes(fh.length); // TODO: write a real reading
 
+    skip_padding(reader, fh);
+
     return props;
 }
 
 std::optional<sis::v9::Logo> sis::v9::Parser::read_optional_logo(BinaryReader &reader) {
     const auto posBeforeReading = reader.position();
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     if (fh.type != sis::v9::Type::Logo) {
         reader.seek(posBeforeReading); // revert position back
         return std::optional<sis::v9::Logo>();
@@ -350,58 +277,67 @@ std::optional<sis::v9::Logo> sis::v9::Parser::read_optional_logo(BinaryReader &r
         .fileDescription = read_file_description(reader),
     };
 
+    skip_padding(reader, fh);
+
     return std::optional<sis::v9::Logo>(logo);
 }
 
 sis::v9::InstallBlock sis::v9::Parser::read_install_block(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::InstallBlock);
-
 
     sis::v9::InstallBlock insBlock;
     insBlock.files = read_array_of_file_description(reader);
     insBlock.embeddedControllers = read_array_of_controller(reader);
     insBlock.ifBlocks = read_array_of_if(reader);
 
+    skip_padding(reader, fh);
+
     return insBlock;
 }
 
 sis::v9::FileDescription sis::v9::Parser::read_file_description(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::FileDescription);
 
-    return read_file_description_payload(reader, fh);
+    const auto payload = read_file_description_payload(reader, fh);
+
+    skip_padding(reader, fh);
+
+    return payload;
 }
 
 sis::v9::SignatureCertificateChain sis::v9::Parser::read_signature_certificate_chain(
     BinaryReader &reader
 ) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::SignatureCertChain);
-
 
     sis::v9::SignatureCertificateChain certChain;
 
     reader.read_bytes(fh.length); // TODO: write a real reading
 
+    skip_padding(reader, fh);
+
     return certChain;
 }
 
 sis::v9::DataIndex sis::v9::Parser::read_data_index(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::DataIndex);
 
-
-    sis::v9::DataIndex dataIdx;
+    sis::v9::DataIndex dataIdx{};
 
     reader.read_bytes(fh.length); // TODO: write a real reading
+
+    skip_padding(reader, fh);
 
     return dataIdx;
 }
 
 
 sis::v9::Uid sis::v9::Parser::read_uid(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Uid);
 
     return {
@@ -410,12 +346,12 @@ sis::v9::Uid sis::v9::Parser::read_uid(BinaryReader &reader) {
 }
 
 sis::v9::String sis::v9::Parser::read_string(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::String);
 
-    sis::v9::String result;
+    const auto result = read_string_payload(reader, fh);
 
-    // UTF-16 = 2 bytes per code unit.
+    /*// UTF-16 = 2 bytes per code unit.
     if ((fh.length % 2) != 0) {
         throw std::runtime_error("Invalid SISString length");
     }
@@ -432,7 +368,7 @@ sis::v9::String sis::v9::Parser::read_string(BinaryReader &reader) {
         result.value.push_back(
             static_cast<char16_t>(ch)
         );
-    }
+    }*/
 
     skip_padding(reader, fh);
 
@@ -461,6 +397,8 @@ sis::v9::Parser::read_string_payload(BinaryReader &reader, const sis::v9::FieldH
             static_cast<char16_t>(ch)
         );
     }
+
+    result.str = std::string(result.value.begin(), result.value.end());
 
     return result;
 }
@@ -520,12 +458,32 @@ sis::v9::ElseIf sis::v9::Parser::read_elseif_payload(BinaryReader &reader, const
     return result;
 }
 
+sis::v9::DataUnit
+sis::v9::Parser::read_data_unit_payload(BinaryReader &reader, const sis::v9::FieldHeader &header) {
+    sis::v9::DataUnit result;
+    result.files = read_array_of_file_data(reader);
+
+    return result;
+}
+
+sis::v9::FileData
+sis::v9::Parser::read_file_data_payload(BinaryReader &reader, const sis::v9::FieldHeader &header) {
+    const auto posBefore = reader.position();
+
+    sis::v9::FileData result;
+    result.compressed = read_compressed(reader);
+
+    reader.seek(posBefore + header.length);
+
+    return result;
+}
+
 
 std::optional<sis::v9::Capabilities>
 sis::v9::Parser::read_opt_capabilities(BinaryReader &reader) {
     const auto posBefore = reader.position();
 
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     if (fh.type != sis::v9::Type::Capabilities) {
         reader.seek(posBefore); // revert offset
         return std::optional<sis::v9::Capabilities>{};
@@ -535,11 +493,13 @@ sis::v9::Parser::read_opt_capabilities(BinaryReader &reader) {
 
     reader.read_bytes(fh.length); // TODO: add a real reading
 
+    skip_padding(reader, fh);
+
     return result;
 }
 
 sis::v9::Expression sis::v9::Parser::read_expression(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Expression);
 
     const auto blockEnd = reader.position() + fh.length;
@@ -581,22 +541,26 @@ sis::v9::Expression sis::v9::Parser::read_expression(BinaryReader &reader) {
 
     reader.seek(blockEnd); // TODO: implement correctly
 
+    skip_padding(reader, fh);
+
     return result;
 }
 
 sis::v9::Hash sis::v9::Parser::read_hash(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Hash);
 
     sis::v9::Hash result;
 
     reader.read_bytes(fh.length); // TODO: add a real reading
 
+    skip_padding(reader, fh);
+
     return result;
 }
 
 sis::v9::Version sis::v9::Parser::read_version(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Version);
 
     sis::v9::Version result{
@@ -605,11 +569,13 @@ sis::v9::Version sis::v9::Parser::read_version(BinaryReader &reader) {
         .build = reader.read_u32_le(),
     };
 
+    skip_padding(reader, fh);
+
     return result;
 }
 
 sis::v9::DateTime sis::v9::Parser::read_datetime(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::DateTime);
 
     sis::v9::DateTime result{
@@ -617,11 +583,13 @@ sis::v9::DateTime sis::v9::Parser::read_datetime(BinaryReader &reader) {
         .time = sis::v9::Parser::read_time(reader),
     };
 
+    skip_padding(reader, fh);
+
     return result;
 }
 
 sis::v9::Date sis::v9::Parser::read_date(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Date);
 
     sis::v9::Date result{
@@ -630,11 +598,13 @@ sis::v9::Date sis::v9::Parser::read_date(BinaryReader &reader) {
         .day = reader.read_u8(),
     };
 
+    skip_padding(reader, fh);
+
     return result;
 }
 
 sis::v9::Time sis::v9::Parser::read_time(BinaryReader &reader) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Time);
 
     sis::v9::Time result{
@@ -642,6 +612,8 @@ sis::v9::Time sis::v9::Parser::read_time(BinaryReader &reader) {
         .minutes = reader.read_u8(),
         .seconds = reader.read_u8(),
     };
+
+    skip_padding(reader, fh);
 
     return result;
 }
@@ -690,14 +662,21 @@ std::vector<sis::v9::ElseIf> sis::v9::Parser::read_array_of_elseif(BinaryReader 
     );
 }
 
-/*std::vector<SISX::SignatureCertificateChain>
-SISXParser::read_array_of_signature_certificate_chain(BinaryReader &reader) {
-    return read_array<SISX::SignatureCertificateChain>(
+std::vector<sis::v9::DataUnit> sis::v9::Parser::read_array_of_data_unit(BinaryReader &reader) {
+    return read_array<sis::v9::DataUnit>(
         reader,
-        SISX::Type::SignatureCertChain, SISXParser
-        ::read_signature_certificate_chain_payload
+        sis::v9::Type::DataUnit,
+        sis::v9::Parser::read_data_unit_payload
     );
-}*/
+}
+
+std::vector<sis::v9::FileData> sis::v9::Parser::read_array_of_file_data(BinaryReader &reader) {
+    return read_array<sis::v9::FileData>(
+        reader,
+        sis::v9::Type::FileData,
+        sis::v9::Parser::read_file_data_payload
+    );
+}
 
 template<typename T, typename PayloadReader>
 std::vector<T>
@@ -706,7 +685,7 @@ sis::v9::Parser::read_array(
     sis::v9::Type expectedElementType,
     PayloadReader &&readPayload
 ) {
-    const auto fh = ::read_field_header(reader);
+    const auto fh = read_field_header(reader);
 
     assert_field_type(fh.type, sis::v9::Type::Array);
 
@@ -747,6 +726,7 @@ sis::v9::Parser::read_array(
         );
     }
 
+    //skip_padding(reader, fh);
 
     return result;
 }

@@ -8,24 +8,25 @@
 #include <utility>
 
 #include "../BinaryReader.h"
-#include "file.h"
+#include "types.h"
 
 namespace sis::v9 {
     class Parser {
     public:
-        explicit Parser(BinaryReader reader) : reader_(std::move(reader)) {
-        };
-
-        sis::v9::File parse();
+        static sis::v9::File parse(BinaryReader &reader);
 
     private:
-        BinaryReader reader_;
+        static sis::v9::FieldHeader read_field_header(BinaryReader &reader);
 
-        sis::v9::FieldHeader read_field_header();
+        static sis::v9::Contents read_contents(BinaryReader &reader);
 
-        sis::v9::Contents read_contents();
+        static sis::v9::Compressed read_compressed(BinaryReader &reader);
+
+        static sis::v9::Compressed read_compressed_payload(BinaryReader &reader, const FieldHeader &header);
 
         static sis::v9::Controller read_controller(BinaryReader &reader);
+
+        static sis::v9::Data read_data_payload(BinaryReader &reader, const FieldHeader &header);
 
         static sis::v9::Info read_info(BinaryReader &reader);
 
@@ -74,8 +75,16 @@ namespace sis::v9 {
         static sis::v9::ElseIf
         read_elseif_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
 
+        static sis::v9::DataUnit
+        read_data_unit_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
+
+        static sis::v9::FileData
+        read_file_data_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
+
         static std::optional<sis::v9::Capabilities> read_opt_capabilities(BinaryReader &reader);
+
         static sis::v9::Expression read_expression(BinaryReader &reader);
+
         static sis::v9::Hash read_hash(BinaryReader &reader);
 
         static sis::v9::Version read_version(BinaryReader &reader);
@@ -100,6 +109,12 @@ namespace sis::v9 {
 
         static std::vector<sis::v9::ElseIf>
         read_array_of_elseif(BinaryReader &reader);
+
+        static std::vector<sis::v9::DataUnit>
+        read_array_of_data_unit(BinaryReader &reader);
+
+        static std::vector<sis::v9::FileData>
+        read_array_of_file_data(BinaryReader &reader);
 
         /*static std::vector<SISX::SignatureCertificateChain>
         read_array_of_signature_certificate_chain(BinaryReader &reader);*/
