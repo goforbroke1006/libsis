@@ -4,8 +4,8 @@
 
 // https://www.cryer.co.uk/file-types/s/sis/softwareinstallsis.pdf
 
-#ifndef LIBSIS_SIS_V9_FILE_H
-#define LIBSIS_SIS_V9_FILE_H
+#ifndef LIBSIS_SIS_V9_TYPES_H
+#define LIBSIS_SIS_V9_TYPES_H
 
 #include <cstdint>
 #include <vector>
@@ -16,12 +16,22 @@
 #include "field.h"
 
 namespace sis::v9 {
+    struct FileUID32 {
+        uint32_t value = 0;
+
+        constexpr FileUID32()
+            : value(0) {}
+
+        constexpr explicit FileUID32(const uint32_t value)
+            : value(value) {}
+    };
+
     struct Header {
-        uint32_t uid1;
-        uint32_t uid2;
-        uint32_t uid3;
-        uint32_t uid4;
-        uint32_t checksum;
+        FileUID32 uid1;
+        FileUID32 uid2;
+        FileUID32 uid3;
+        FileUID32 uid4;
+        FileUID32 checksum;
     };
 
     enum TInstallType : uint8_t {
@@ -291,21 +301,33 @@ namespace sis::v9 {
         DataIndex dataIndex;
     };
 
-    constexpr uint32_t COMP_ALG_NONE = 0;
-    constexpr uint32_t COMP_ALG_DEFLATE = 1;
-
-    struct Compressed {
-        uint32_t algorithm;
-        uint64_t uncompressedSize;
-        Controller controller;
+    enum CompressedAlgorithm : uint32_t {
+        COMP_ALG_NONE = 0,
+        COMP_ALG_DEFLATE = 1,
     };
 
+    struct Compressed {
+        uint32_t algorithmRaw;
+        CompressedAlgorithm algorithm;
+        uint64_t uncompressedSize;
+
+        std::vector<uint8_t> compressedData;
+    };
+
+    /*struct Compressed {
+        uint32_t algorithm = 0;
+        uint64_t uncompressedSize = 0;
+
+        std::vector<uint8_t> data;
+    };*/
+
     struct FileData {
-        // TODO: compressed file data
+        Compressed compressed;
+        std::vector<uint8_t> data;
     };
 
     struct DataUnit {
-        std::vector<FileData> data;
+        std::vector<FileData> files;
     };
 
     struct Data {
@@ -316,6 +338,7 @@ namespace sis::v9 {
         uint16_t controllerChecksum;
         uint16_t dataChecksum;
         Compressed compressed;
+        Controller controller; // extracted from the "compressed" field
         Data data;
     };
 
@@ -335,4 +358,4 @@ namespace sis::v9 {
     };
 } //sis::v9
 
-#endif //LIBSIS_SIS_V9_FILE_H
+#endif //LIBSIS_SIS_V9_TYPES_H
