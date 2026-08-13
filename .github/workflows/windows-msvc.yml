@@ -34,6 +34,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install zlib
+      shell: pwsh
+      run: |
+        vcpkg install zlib:x64-windows
+
+    - name: Configure
+      shell: pwsh
+      run: |
+        cmake -S . -B build `
+          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings
