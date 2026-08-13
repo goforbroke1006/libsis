@@ -5,11 +5,11 @@ files *.sis *.sisx
 
 ## Build status
 
-| Platform       | Status                                                                                     |
-|----------------|--------------------------------------------------------------------------------------------|
-| Ubuntu / GCC   | ![Ubuntu GCC](https://github.com/USER/REPO/actions/workflows/ubuntu-gcc.yml/badge.svg)     |
-| Ubuntu / Clang | ![Ubuntu Clang](https://github.com/USER/REPO/actions/workflows/ubuntu-clang.yml/badge.svg) |
-| Windows / MSVC | ![Windows MSVC](https://github.com/USER/REPO/actions/workflows/windows-msvc.yml/badge.svg) |
+| Platform       | Status                                                                                                 |
+|----------------|--------------------------------------------------------------------------------------------------------|
+| Ubuntu / GCC   | ![Ubuntu GCC](https://github.com/goforbroke1006/libsis/actions/workflows/ubuntu-gcc.yml/badge.svg)     |
+| Ubuntu / Clang | ![Ubuntu Clang](https://github.com/goforbroke1006/libsis/actions/workflows/ubuntu-clang.yml/badge.svg) |
+| Windows / MSVC | ![Windows MSVC](https://github.com/goforbroke1006/libsis/actions/workflows/windows-msvc.yml/badge.svg) |
 
 ## Usage
 
