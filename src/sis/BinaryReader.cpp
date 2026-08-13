@@ -8,12 +8,12 @@
 #include <fstream>
 #include <sstream>
 
-BinaryReader::BinaryReader(const std::vector<uint8_t> &data) : data_(data), pos_(0) {
+sis::BinaryReader::BinaryReader(const std::vector<uint8_t> &data) : data_(data), pos_(0) {
     if (data_.empty())
         throw std::runtime_error("Empty data vector");
 }
 
-BinaryReader BinaryReader::from_file(const std::string &filename) {
+sis::BinaryReader sis::BinaryReader::from_file(const std::string &filename) {
     std::ifstream file(filename, std::ios::binary);
 
     if (!file)
@@ -30,13 +30,13 @@ BinaryReader BinaryReader::from_file(const std::string &filename) {
     return BinaryReader(data);
 }
 
-uint8_t BinaryReader::read_u8() {
+uint8_t sis::BinaryReader::read_u8() {
     require(1);
 
     return data_[pos_++];
 }
 
-uint16_t BinaryReader::read_u16_le() {
+uint16_t sis::BinaryReader::read_u16_le() {
     require(2);
 
     uint16_t value =
@@ -47,7 +47,7 @@ uint16_t BinaryReader::read_u16_le() {
     return value;
 }
 
-uint32_t BinaryReader::read_u32_le() {
+uint32_t sis::BinaryReader::read_u32_le() {
     require(4);
 
     uint32_t value =
@@ -60,7 +60,7 @@ uint32_t BinaryReader::read_u32_le() {
     return value;
 }
 
-uint64_t BinaryReader::read_u64_le() {
+uint64_t sis::BinaryReader::read_u64_le() {
     require(8);
 
     uint64_t value =
@@ -77,7 +77,7 @@ uint64_t BinaryReader::read_u64_le() {
     return value;
 }
 
-std::vector<uint8_t> BinaryReader::read_bytes(const size_t count) {
+std::vector<uint8_t> sis::BinaryReader::read_bytes(const size_t count) {
     require(count);
 
     std::vector<uint8_t> result(
@@ -89,7 +89,7 @@ std::vector<uint8_t> BinaryReader::read_bytes(const size_t count) {
     return result;
 }
 
-std::u16string BinaryReader::read_string(uint64_t length) {
+std::u16string sis::BinaryReader::read_string(uint64_t length) {
     std::u16string result;
 
     // UTF-16 = 2 bytes per code unit.
@@ -114,20 +114,11 @@ std::u16string BinaryReader::read_string(uint64_t length) {
     return result;
 }
 
-size_t BinaryReader::remaining() const {
+size_t sis::BinaryReader::remaining() const {
     return data_.size() - pos_;
 }
 
-/*BinaryReader BinaryReader::to_new_reader(size_t from, size_t length) const {
-    return BinaryReader(
-        std::vector<uint8_t>(
-            data_.begin() + from,
-            data_.begin() + from + length
-        )
-    );
-}*/
-
-std::string bytes_to_string(const std::vector<uint8_t> &bytes) {
+std::string sis::bytes_to_string(const std::vector<uint8_t> &bytes) {
     std::stringstream ss;
 
     for (auto byte: bytes) {
