@@ -20,7 +20,8 @@ namespace {
     }
 }
 
-sis::v9::File sis::v9::Parser::parse(BinaryReader &reader) {
+sis::v9::File
+sis::v9::Parser::parse(BinaryReader &reader) {
     // 0x00  UID1 = 0x10201A7A
     // 0x04  UID2
     // 0x08  UID3

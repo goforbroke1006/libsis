@@ -7,6 +7,8 @@ add_library(${PROJECT_NAME}
         src/sis/BinaryReader.cpp
         src/sis/legacy/Parser.cpp
         src/sis/v9/Parser.cpp
+
+        src/sis/c_api.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ./include)
 
@@ -21,3 +23,5 @@ include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
+
+add_subdirectory(./examples/c_api)
