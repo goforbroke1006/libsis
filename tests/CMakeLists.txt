@@ -18,6 +18,7 @@ target_link_libraries(sis_tests
         GTest::gtest_main
 )
 
+# Copy lib to the tests directory for Win32.
 add_custom_command(
         TARGET sis_tests
         POST_BUILD
