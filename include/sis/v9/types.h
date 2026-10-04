@@ -337,7 +337,7 @@ namespace sis::v9 {
     struct Contents {
         uint16_t controllerChecksum;
         uint16_t dataChecksum;
-        Compressed compressed;
+        //Compressed compressed;
         Controller controller; // extracted from the "compressed" field
         Data data;
     };
