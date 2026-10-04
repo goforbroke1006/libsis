@@ -8,7 +8,7 @@ project(
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
         src/sis/BinaryReader.cpp
         src/sis/legacy/Parser.cpp
         src/sis/v9/Parser.cpp
@@ -21,6 +21,10 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:include>
 )
 
+target_compile_options(sis PRIVATE
+        $<$<CONFIG:Debug>:-O0 -g3 -fno-omit-frame-pointer>
+)
+
 # Version for .so
 set_target_properties(${PROJECT_NAME} PROPERTIES
         VERSION ${PROJECT_VERSION}
@@ -31,7 +35,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # ZLIB
 #
 find_package(ZLIB REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
+target_link_libraries(${PROJECT_NAME} PUBLIC ZLIB::ZLIB)
 
 include(CTest)
 

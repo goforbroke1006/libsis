@@ -537,7 +537,8 @@ sis::v9::Parser::read_opt_capabilities(BinaryReader &reader) {
     return result;
 }
 
-sis::v9::Expression sis::v9::Parser::read_expression(BinaryReader &reader) {
+sis::v9::Expression
+sis::v9::Parser::read_expression(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Expression);
 
