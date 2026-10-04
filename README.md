@@ -11,13 +11,21 @@ files *.sis *.sisx
 | Ubuntu / Clang | ![Ubuntu Clang](https://github.com/goforbroke1006/libsis/actions/workflows/ubuntu-clang.yml/badge.svg) |
 | Windows / MSVC | ![Windows MSVC](https://github.com/goforbroke1006/libsis/actions/workflows/windows-msvc.yml/badge.svg) |
 
+## Parsers readiness
+
+| File format        | Status            |
+|--------------------|-------------------|
+| SIS v7 v8 (legacy) | Does not work now |
+| SIS v9             | Works             |
+| ZIP archive        | No implementation |
+
 ## Installation
 
 ### As Cmake subdirectory
 
 ```shell
-git modules init
-git modules add https://github.com/goforbroke1006/libsis.git ./third_party/libsis
+git submodule init
+git submodule add https://github.com/goforbroke1006/libsis.git ./third_party/libsis
 ```
 
 ```cmake
