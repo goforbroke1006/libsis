@@ -18,6 +18,14 @@ target_link_libraries(sis_tests
         GTest::gtest_main
 )
 
+add_custom_command(
+        TARGET sis_tests
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:sis>
+        $<TARGET_FILE_DIR:sis_tests>
+)
+
 include(GoogleTest)
 
 gtest_discover_tests(sis_tests)
