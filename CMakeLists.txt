@@ -24,6 +24,9 @@ target_include_directories(${PROJECT_NAME}
 target_compile_options(sis PRIVATE
         $<$<CONFIG:Debug>:-O0 -g3 -fno-omit-frame-pointer>
 )
+set_target_properties(sis PROPERTIES
+        WINDOWS_EXPORT_ALL_SYMBOLS ON
+)
 
 # Version for .so
 set_target_properties(${PROJECT_NAME} PROPERTIES
