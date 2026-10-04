@@ -67,11 +67,15 @@ jobs:
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
-    - name: Inspect DLL dependencies
-      shell: cmd
+    - name: Find DLLs
+      if: runner.os == 'Windows'
+      shell: pwsh
       run: |
-        dumpbin /dependents build\tests\Release\sis_tests.exe
-        dumpbin /dependents build\Release\sis.dll
+        Write-Host "=== vcpkg DLLs ==="
+        Get-ChildItem C:\vcpkg\installed\x64-windows\bin\*.dll
+
+        Write-Host "=== Build DLLs ==="
+        Get-ChildItem ${{ steps.strings.outputs.build-output-dir }} -Recurse -Filter *.dll
 
     - name: Test
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
