@@ -11,7 +11,8 @@
 #include <iostream>
 
 inline
-std::vector<uint8_t> inflate_impl(const std::vector<uint8_t> &input, uint64_t uncompressedSize, int windowBits) {
+std::vector<uint8_t>
+inflate_impl(const std::vector<uint8_t> &input, uint64_t uncompressedSize, int windowBits) {
     if (uncompressedSize > SIZE_MAX)
         throw std::runtime_error("Output too large");
 
@@ -80,7 +81,8 @@ std::vector<uint8_t> inflate_impl(const std::vector<uint8_t> &input, uint64_t un
 }
 
 inline
-std::vector<uint8_t> zlib_inflate(const std::vector<uint8_t> &input, uint64_t uncompressedSize) {
+std::vector<uint8_t>
+zlib_inflate(const std::vector<uint8_t> &input, uint64_t uncompressedSize) {
     try {
         // Raw RFC 1951 DEFLATE
         return inflate_impl(

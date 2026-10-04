@@ -18,7 +18,7 @@ namespace sis {
 
         static BinaryReader from_file(const std::string &filename);
 
-        void seek(size_t pos) {
+        void seek(const size_t pos) {
             this->pos_ = pos;
         }
 
@@ -34,9 +34,9 @@ namespace sis {
 
         uint64_t read_u64_le();
 
-        std::vector<uint8_t> read_bytes(size_t count);
+        std::vector<uint8_t> read_bytes(const size_t count);
 
-        std::u16string read_string(uint64_t length);
+        std::u16string read_string(const uint64_t length);
 
         [[nodiscard]] size_t position() const {
             return pos_;
@@ -45,8 +45,6 @@ namespace sis {
         [[nodiscard]] size_t remaining() const;
 
         [[nodiscard]] bool empty() const { return remaining() == 0; }
-
-        // BinaryReader to_new_reader(size_t from, size_t length) const;
 
     private:
         void require(size_t count) const {

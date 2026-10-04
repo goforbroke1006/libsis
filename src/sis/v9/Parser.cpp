@@ -45,7 +45,8 @@ sis::v9::Parser::parse(BinaryReader &reader) {
     return result;
 }
 
-sis::v9::FieldHeader sis::v9::Parser::read_field_header(BinaryReader &reader) {
+sis::v9::FieldHeader
+sis::v9::Parser::read_field_header(BinaryReader &reader) {
     const uint32_t raw_type = reader.read_u32_le();
     const uint32_t len = reader.read_u32_le();
 
@@ -72,7 +73,8 @@ sis::v9::FieldHeader sis::v9::Parser::read_field_header(BinaryReader &reader) {
     return header;
 }
 
-sis::v9::FieldHeader sis::v9::Parser::peak_field_header(BinaryReader &reader) {
+sis::v9::FieldHeader
+sis::v9::Parser::peak_field_header(BinaryReader &reader) {
     auto posBefore = reader.position();
 
     auto header = read_field_header(reader);
@@ -82,7 +84,8 @@ sis::v9::FieldHeader sis::v9::Parser::peak_field_header(BinaryReader &reader) {
     return header;
 }
 
-sis::v9::Contents sis::v9::Parser::read_contents(BinaryReader &reader) {
+sis::v9::Contents
+sis::v9::Parser::read_contents(BinaryReader &reader) {
     sis::v9::Contents contents{};
 
     const auto contentsHeader = read_field_header(reader);
@@ -156,7 +159,8 @@ sis::v9::Contents sis::v9::Parser::read_contents(BinaryReader &reader) {
     return contents;
 }
 
-sis::v9::Compressed sis::v9::Parser::read_compressed(BinaryReader &reader) {
+sis::v9::Compressed
+sis::v9::Parser::read_compressed(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Compressed);
 
@@ -167,7 +171,8 @@ sis::v9::Compressed sis::v9::Parser::read_compressed(BinaryReader &reader) {
     return payload;
 }
 
-sis::v9::Compressed sis::v9::Parser::read_compressed_payload(BinaryReader &reader, const FieldHeader &header) {
+sis::v9::Compressed
+sis::v9::Parser::read_compressed_payload(BinaryReader &reader, const FieldHeader &header) {
     sis::v9::Compressed result;
 
     result.algorithmRaw = reader.read_u32_le();
@@ -181,7 +186,8 @@ sis::v9::Compressed sis::v9::Parser::read_compressed_payload(BinaryReader &reade
     return result;
 }
 
-sis::v9::Controller sis::v9::Parser::read_controller(BinaryReader &reader) {
+sis::v9::Controller
+sis::v9::Parser::read_controller(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Controller);
 
@@ -219,7 +225,8 @@ sis::v9::Controller sis::v9::Parser::read_controller(BinaryReader &reader) {
     return result;
 }
 
-sis::v9::Data sis::v9::Parser::read_data_payload(BinaryReader &reader, const FieldHeader &header) {
+sis::v9::Data
+sis::v9::Parser::read_data_payload(BinaryReader &reader, const FieldHeader &header) {
     sis::v9::Data result;
 
     result.units = read_array_of_data_unit(reader);
@@ -227,7 +234,8 @@ sis::v9::Data sis::v9::Parser::read_data_payload(BinaryReader &reader, const Fie
     return result;
 }
 
-sis::v9::Info sis::v9::Parser::read_info(BinaryReader &reader) {
+sis::v9::Info
+sis::v9::Parser::read_info(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Info);
 
@@ -258,7 +266,8 @@ sis::v9::Info sis::v9::Parser::read_info(BinaryReader &reader) {
     return result;
 }
 
-sis::v9::SupportedOptions sis::v9::Parser::read_supported_options(BinaryReader &reader) {
+sis::v9::SupportedOptions
+sis::v9::Parser::read_supported_options(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::SupportedOptions);
 
@@ -271,7 +280,8 @@ sis::v9::SupportedOptions sis::v9::Parser::read_supported_options(BinaryReader &
     return supOpts;
 }
 
-sis::v9::SupportedLanguages sis::v9::Parser::read_supported_languages(BinaryReader &reader) {
+sis::v9::SupportedLanguages
+sis::v9::Parser::read_supported_languages(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::SupportedLanguages);
 
@@ -285,7 +295,8 @@ sis::v9::SupportedLanguages sis::v9::Parser::read_supported_languages(BinaryRead
     return supLangs;
 }
 
-sis::v9::Prerequisites sis::v9::Parser::read_prerequisites(BinaryReader &reader) {
+sis::v9::Prerequisites
+sis::v9::Parser::read_prerequisites(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Prerequisites);
 
@@ -299,7 +310,8 @@ sis::v9::Prerequisites sis::v9::Parser::read_prerequisites(BinaryReader &reader)
     return pre;
 }
 
-sis::v9::Properties sis::v9::Parser::read_properties(BinaryReader &reader) {
+sis::v9::Properties
+sis::v9::Parser::read_properties(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Properties);
 
@@ -313,7 +325,8 @@ sis::v9::Properties sis::v9::Parser::read_properties(BinaryReader &reader) {
     return props;
 }
 
-std::optional<sis::v9::Logo> sis::v9::Parser::read_optional_logo(BinaryReader &reader) {
+std::optional<sis::v9::Logo>
+sis::v9::Parser::read_optional_logo(BinaryReader &reader) {
     const auto posBeforeReading = reader.position();
     const auto fh = read_field_header(reader);
     if (fh.type != sis::v9::Type::Logo) {
@@ -331,7 +344,8 @@ std::optional<sis::v9::Logo> sis::v9::Parser::read_optional_logo(BinaryReader &r
     return {logo};
 }
 
-sis::v9::InstallBlock sis::v9::Parser::read_install_block(BinaryReader &reader) {
+sis::v9::InstallBlock
+sis::v9::Parser::read_install_block(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::InstallBlock);
 
@@ -345,7 +359,8 @@ sis::v9::InstallBlock sis::v9::Parser::read_install_block(BinaryReader &reader) 
     return insBlock;
 }
 
-sis::v9::FileDescription sis::v9::Parser::read_file_description(BinaryReader &reader) {
+sis::v9::FileDescription
+sis::v9::Parser::read_file_description(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::FileDescription);
 
@@ -370,7 +385,8 @@ sis::v9::Parser::read_signature_certificate_chain(BinaryReader &reader) {
     return certChain;
 }
 
-sis::v9::DataIndex sis::v9::Parser::read_data_index(BinaryReader &reader) {
+sis::v9::DataIndex
+sis::v9::Parser::read_data_index(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::DataIndex);
 
@@ -381,7 +397,8 @@ sis::v9::DataIndex sis::v9::Parser::read_data_index(BinaryReader &reader) {
 }
 
 
-sis::v9::Uid sis::v9::Parser::read_uid(BinaryReader &reader) {
+sis::v9::Uid
+sis::v9::Parser::read_uid(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::Uid);
 
@@ -390,7 +407,8 @@ sis::v9::Uid sis::v9::Parser::read_uid(BinaryReader &reader) {
     };
 }
 
-sis::v9::String sis::v9::Parser::read_string(BinaryReader &reader) {
+sis::v9::String
+sis::v9::Parser::read_string(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::String);
 
@@ -480,7 +498,8 @@ sis::v9::Parser::read_controller_payload(BinaryReader &reader, const sis::v9::Fi
     return result;
 }
 
-sis::v9::If sis::v9::Parser::read_if_payload(BinaryReader &reader, const sis::v9::FieldHeader &header) {
+sis::v9::If
+sis::v9::Parser::read_if_payload(BinaryReader &reader, const sis::v9::FieldHeader &header) {
     sis::v9::If result;
     result.expression = read_expression(reader);
     result.installBlock = std::make_unique<sis::v9::InstallBlock>(read_install_block(reader));
@@ -489,7 +508,8 @@ sis::v9::If sis::v9::Parser::read_if_payload(BinaryReader &reader, const sis::v9
     return result;
 }
 
-sis::v9::ElseIf sis::v9::Parser::read_elseif_payload(BinaryReader &reader, const sis::v9::FieldHeader &header) {
+sis::v9::ElseIf
+\sis::v9::Parser::read_elseif_payload(BinaryReader &reader, const sis::v9::FieldHeader &header) {
     sis::v9::ElseIf result;
     result.expression = read_expression(reader);
     result.installBlock = std::make_unique<sis::v9::InstallBlock>(read_install_block(reader));
@@ -544,7 +564,14 @@ sis::v9::Parser::read_expression(BinaryReader &reader) {
 
     const auto blockEnd = reader.position() + fh.length;
 
-    sis::v9::Expression result;
+    sis::v9::Expression result{
+        .operatorTypeRaw = 0,
+        .operatorType = ExpressionOperator::Unknown,
+        .integerValue = 0,
+        .stringValue = {},
+        .left = nullptr,
+        .right = nullptr,
+    };
     result.operatorTypeRaw = reader.read_u32_le();
     result.operatorType = static_cast<sis::v9::ExpressionOperator>(result.operatorTypeRaw);
 
@@ -595,10 +622,8 @@ sis::v9::Parser::read_expression(BinaryReader &reader) {
             );
     }
 
-    // reader.seek(blockEnd); // TODO: implement correctly
-
     if (reader.position() < blockEnd) {
-        // Здесь НЕ стоит пока молча skip'ать.
+        // Final verification that read block properly.
         std::cerr
                 << "Expression has "
                 << (blockEnd - reader.position())

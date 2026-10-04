@@ -14,7 +14,7 @@ inline
 std::ostream &operator
 <<(std::ostream &out, sis::v9::FileUID32 const &uid) {
     const auto flags = out.flags();
-    const auto fill  = out.fill();
+    const auto fill = out.fill();
 
     out << "0x" << std::setw(8) << std::setfill('0') << std::hex << uid.value; // print
 
@@ -94,11 +94,14 @@ std::ostream &operator
 <<(std::ostream &out, sis::v9::Expression const &exp) {
     out
             << "("
-            << sis::v9::exp_op_to_str(exp.operatorType)
-            << ","
-            << exp.left
-            << ","
-            << exp.right;
+            << sis::v9::exp_op_to_str(exp.operatorType);
+
+    if (exp.left) {
+        out << "," << *exp.left;
+    }
+    if (exp.right) {
+        out << "," << *exp.right;
+    }
 
     if (exp.integerValue.has_value()) {
         out
@@ -108,7 +111,7 @@ std::ostream &operator
     if (exp.stringValue.has_value()) {
         out
                 << ","
-                << exp.stringValue.value();
+                << "\"" << exp.stringValue.value() << "\"";
     }
 
     out << ")";

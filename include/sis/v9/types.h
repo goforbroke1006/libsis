@@ -153,6 +153,8 @@ namespace sis::v9 {
     };
 
     enum class ExpressionOperator : uint32_t {
+        Unknown = 0,
+
         // Binary
         Equal = 1,
         NotEqual = 2,
