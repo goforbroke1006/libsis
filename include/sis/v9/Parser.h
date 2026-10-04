@@ -18,6 +18,8 @@ namespace sis::v9 {
     private:
         static sis::v9::FieldHeader read_field_header(BinaryReader &reader);
 
+        static sis::v9::FieldHeader peak_field_header(BinaryReader &reader);
+
         static sis::v9::Contents read_contents(BinaryReader &reader);
 
         static sis::v9::Compressed read_compressed(BinaryReader &reader);
@@ -54,11 +56,14 @@ namespace sis::v9 {
             const SISX::FieldHeader &header
         );*/
 
-        static sis::v9::DataIndex read_data_index(BinaryReader &reader);
+        static sis::v9::DataIndex
+        read_data_index(BinaryReader &reader);
 
-        static sis::v9::Uid read_uid(BinaryReader &reader);
+        static sis::v9::Uid
+        read_uid(BinaryReader &reader);
 
-        static sis::v9::String read_string(BinaryReader &reader);
+        static sis::v9::String
+        read_string(BinaryReader &reader);
 
         static sis::v9::String
         read_string_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
@@ -81,19 +86,26 @@ namespace sis::v9 {
         static sis::v9::FileData
         read_file_data_payload(BinaryReader &reader, const sis::v9::FieldHeader &header);
 
-        static std::optional<sis::v9::Capabilities> read_opt_capabilities(BinaryReader &reader);
+        static std::optional<sis::v9::Capabilities>
+        read_opt_capabilities(BinaryReader &reader);
 
-        static sis::v9::Expression read_expression(BinaryReader &reader);
+        static sis::v9::Expression
+        read_expression(BinaryReader &reader);
 
-        static sis::v9::Hash read_hash(BinaryReader &reader);
+        static sis::v9::Hash
+        read_hash(BinaryReader &reader);
 
-        static sis::v9::Version read_version(BinaryReader &reader);
+        static sis::v9::Version
+        read_version(BinaryReader &reader);
 
-        static sis::v9::DateTime read_datetime(BinaryReader &reader);
+        static sis::v9::DateTime
+        read_datetime(BinaryReader &reader);
 
-        static sis::v9::Date read_date(BinaryReader &reader);
+        static sis::v9::Date
+        read_date(BinaryReader &reader);
 
-        static sis::v9::Time read_time(BinaryReader &reader);
+        static sis::v9::Time
+        read_time(BinaryReader &reader);
 
         static std::vector<sis::v9::String>
         read_array_of_string(BinaryReader &reader);
@@ -120,16 +132,14 @@ namespace sis::v9 {
         read_array_of_signature_certificate_chain(BinaryReader &reader);*/
 
         template<typename T, typename PayloadReader>
-        static std::vector<T> read_array(
-            BinaryReader &reader,
-            sis::v9::Type expectedElementType,
-            PayloadReader &&readPayload);
+        static std::vector<T>
+        read_array(BinaryReader &reader, sis::v9::Type expectedElementType, PayloadReader &&readPayload);
 
-        static sis::v9::FieldHeader read_array_element_header(
-            BinaryReader &reader,
-            sis::v9::Type elementType);
+        static sis::v9::FieldHeader
+        read_array_element_header(BinaryReader &reader, sis::v9::Type elementType);
 
-        static void skip_padding(BinaryReader &reader, const sis::v9::FieldHeader &lastHeader);
+        static void
+        skip_padding(BinaryReader &reader, const sis::v9::FieldHeader &lastHeader);
     };
 } //sis::v9
 
