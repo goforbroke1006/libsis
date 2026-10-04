@@ -509,7 +509,7 @@ sis::v9::Parser::read_if_payload(BinaryReader &reader, const sis::v9::FieldHeade
 }
 
 sis::v9::ElseIf
-\sis::v9::Parser::read_elseif_payload(BinaryReader &reader, const sis::v9::FieldHeader &header) {
+sis::v9::Parser::read_elseif_payload(BinaryReader &reader, const sis::v9::FieldHeader &header) {
     sis::v9::ElseIf result;
     result.expression = read_expression(reader);
     result.installBlock = std::make_unique<sis::v9::InstallBlock>(read_install_block(reader));
