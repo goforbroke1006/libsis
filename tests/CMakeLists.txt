@@ -39,4 +39,6 @@ endif ()
 
 include(GoogleTest)
 
-gtest_discover_tests(sis_tests)
+gtest_discover_tests(sis_tests
+        DISCOVERY_MODE PRE_TEST
+)
