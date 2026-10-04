@@ -72,6 +72,16 @@ sis::v9::FieldHeader sis::v9::Parser::read_field_header(BinaryReader &reader) {
     return header;
 }
 
+sis::v9::FieldHeader sis::v9::Parser::peak_field_header(BinaryReader &reader) {
+    auto posBefore = reader.position();
+
+    auto header = read_field_header(reader);
+
+    reader.seek(posBefore);
+
+    return header;
+}
+
 sis::v9::Contents sis::v9::Parser::read_contents(BinaryReader &reader) {
     sis::v9::Contents contents{};
 
@@ -188,7 +198,17 @@ sis::v9::Controller sis::v9::Parser::read_controller(BinaryReader &reader) {
     result.properties = read_properties(reader);
     result.logo = read_optional_logo(reader);
     result.installBlock = read_install_block(reader);
-    result.certChain = read_signature_certificate_chain(reader);
+
+    while (true) {
+        auto currHeader = peak_field_header(reader);
+        if (sis::v9::Type::SignatureCertChain != currHeader.type)
+            break;
+
+        result.certChains.push_back(
+            read_signature_certificate_chain(reader)
+        );
+    }
+
     result.dataIndex = read_data_index(reader);
 
     // skip_padding(reader, fh);
@@ -336,9 +356,8 @@ sis::v9::FileDescription sis::v9::Parser::read_file_description(BinaryReader &re
     return payload;
 }
 
-sis::v9::SignatureCertificateChain sis::v9::Parser::read_signature_certificate_chain(
-    BinaryReader &reader
-) {
+sis::v9::SignatureCertificateChain
+sis::v9::Parser::read_signature_certificate_chain(BinaryReader &reader) {
     const auto fh = read_field_header(reader);
     assert_field_type(fh.type, sis::v9::Type::SignatureCertChain);
 
@@ -445,7 +464,17 @@ sis::v9::Parser::read_controller_payload(BinaryReader &reader, const sis::v9::Fi
     result.properties = read_properties(reader);
     result.logo = read_optional_logo(reader);
     result.installBlock = read_install_block(reader);
-    result.certChain = read_signature_certificate_chain(reader);
+
+    while (true) {
+        auto currHeader = peak_field_header(reader);
+        if (sis::v9::Type::SignatureCertChain != currHeader.type)
+            break;
+
+        result.certChains.push_back(
+            read_signature_certificate_chain(reader)
+        );
+    }
+
     result.dataIndex = read_data_index(reader);
 
     return result;
@@ -734,8 +763,6 @@ sis::v9::Parser::read_array(
     std::vector<T> result;
 
     while (reader.position() < arrayEnd) {
-
-
         //
         // Array element does NOT contain its type.
         // It starts with its length.
@@ -747,7 +774,7 @@ sis::v9::Parser::read_array(
                 );
 
         const uint64_t elementEnd =
-            reader.position() + elementHeader.length;
+                reader.position() + elementHeader.length;
 
         result.push_back(
             readPayload(

@@ -296,7 +296,7 @@ namespace sis::v9 {
 
         InstallBlock installBlock;
 
-        SignatureCertificateChain certChain;
+        std::vector<SignatureCertificateChain> certChains;
 
         DataIndex dataIndex;
     };
