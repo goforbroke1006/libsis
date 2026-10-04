@@ -213,11 +213,11 @@ namespace sis::v9 {
         uint32_t operatorTypeRaw;
         ExpressionOperator operatorType;
 
-        std::unique_ptr<Expression> left;
-        std::unique_ptr<Expression> right;
-
         std::optional<int32_t> integerValue;
         std::optional<String> stringValue;
+
+        std::unique_ptr<Expression> left;
+        std::unique_ptr<Expression> right;
     };
 
     struct Controller;

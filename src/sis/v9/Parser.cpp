@@ -548,6 +548,13 @@ sis::v9::Parser::read_expression(BinaryReader &reader) {
     result.operatorTypeRaw = reader.read_u32_le();
     result.operatorType = static_cast<sis::v9::ExpressionOperator>(result.operatorTypeRaw);
 
+    result.integerValue = static_cast<int32_t>(reader.read_u32_le());
+
+    auto nextHeader = peak_field_header(reader);
+    if (Type::String == nextHeader.type) {
+        result.stringValue = read_string(reader);
+    }
+
     switch (result.operatorType) {
         case sis::v9::ExpressionOperator::Equal:
         case sis::v9::ExpressionOperator::NotEqual:
@@ -558,28 +565,47 @@ sis::v9::Parser::read_expression(BinaryReader &reader) {
             result.left = std::make_unique<Expression>(read_expression(reader));
             result.right = std::make_unique<Expression>(read_expression(reader));
             break;
-        default:
-            result.left = nullptr;
-            result.right = nullptr;
-            break;
-    }
 
-    switch (result.operatorType) {
         case sis::v9::ExpressionOperator::Number:
         case sis::v9::ExpressionOperator::Option:
         case sis::v9::ExpressionOperator::Variable:
-            result.integerValue = static_cast<int32_t>(reader.read_u32_le());
+            //result.integerValue = static_cast<int32_t>(reader.read_u32_le());
+            break;
+
+        case sis::v9::ExpressionOperator::And:
+        case sis::v9::ExpressionOperator::Or:
+        case sis::v9::ExpressionOperator::Not:
+            // TODO:
+            break;
+
+        case sis::v9::ExpressionOperator::Exists:
+        case sis::v9::ExpressionOperator::AppProperties:
+        case sis::v9::ExpressionOperator::DevProperties:
+            // TODO:
             break;
 
         case sis::v9::ExpressionOperator::String:
-            result.stringValue = read_string(reader);
+            //result.stringValue = read_string(reader);
             break;
 
         default:
-            break;
+            throw std::runtime_error(
+                "Unsupported ExpressionOperator: " +
+                std::to_string(result.operatorTypeRaw)
+            );
     }
 
-    reader.seek(blockEnd); // TODO: implement correctly
+    // reader.seek(blockEnd); // TODO: implement correctly
+
+    if (reader.position() < blockEnd) {
+        // Здесь НЕ стоит пока молча skip'ать.
+        std::cerr
+                << "Expression has "
+                << (blockEnd - reader.position())
+                << " unread bytes\n";
+
+        reader.read_bytes(blockEnd - reader.position());
+    }
 
     skip_padding(reader, fh);
 
