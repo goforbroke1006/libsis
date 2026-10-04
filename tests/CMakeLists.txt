@@ -18,14 +18,24 @@ target_link_libraries(sis_tests
         GTest::gtest_main
 )
 
-# Copy lib to the tests directory for Win32.
-add_custom_command(
-        TARGET sis_tests
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:sis>
-        $<TARGET_FILE_DIR:sis_tests>
-)
+# Copy all DDLs to the tests directory for Win32 build.
+if (WIN32)
+    add_custom_command(
+            TARGET sis_tests
+            POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:sis_tests>
+            $<TARGET_FILE_DIR:sis_tests>
+            COMMAND_EXPAND_LISTS
+    )
+    #add_custom_command(
+    #        TARGET sis_tests
+    #        POST_BUILD
+    #        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    #        $<TARGET_FILE:sis>
+    #        $<TARGET_FILE_DIR:sis_tests>
+    #)
+endif ()
 
 include(GoogleTest)
 
